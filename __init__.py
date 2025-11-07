@@ -1,3 +1,6 @@
+from logging import getLogger
+logger = getLogger(__name__)
+
 class Morph:
 
     def __init__(self,
@@ -31,6 +34,29 @@ class Morph:
     
     def to_multi(self):
         raise NotImplementedError
+
+    """Return the morphological tag if it is the only morphological tag option
+    for this analysis. Log a warning if a morphological tag index
+    is requiered by the analysis' type (but not specified).
+    If the analysis has multiple options, log an error and return None.
+    :return: The morphological tag if the morphological analysis contains
+    exactly one morphological tag option, None otherwise.
+    """
+    @property
+    def single_morph_tag(self) -> str | None:
+      raise NotImplementedError
+
+    """Return the morphological with the specified index.
+    Log a warning if the analysis does not support multiple
+    morphological tag options and an error if the index
+    does not occur in the dictionary containing the
+    morphological tag options for this analysis.
+    :return: The morphological analysis with the specified index
+    if the index is found or the only morphological tag if the analysis
+    does not support multiple options, None otherwise.
+    """
+    def __getitem__(self) -> str | None:
+      raise NotImplementedError
         
 class SingleMorph(Morph):
     
@@ -65,6 +91,15 @@ class SingleMorph(Morph):
     def to_multi(self):
         return MultiMorph(self.segmentation, self.translation,
             {'a': self.morph_tag}, self.pos, self.det)
+
+    @property
+    def single_morph_tag(self) -> str:
+      return self.morph_tag
+
+    def __getitem__(self, index: str) -> str:
+      logger.warning('A morphological tag index (%s) is specified for a morphological analysis which does not support multiple morphological tag options (%s). The single available morphologial tag will be used.',
+                     index, self)
+      return self.morph_tag
 
 class MultiMorph(Morph):
     
@@ -110,6 +145,21 @@ class MultiMorph(Morph):
     
     def to_multi(self):
         return self
+
+    @property
+    def single_morph_tag(self) -> str | None:
+      if self.is_singletone:
+        logger.warning('No morphological tag index is specified for a morphological analysis supporting multiple morphological tag options (%s). The single available option will be used.', self)
+        return next(iter(self.morph_tags.values()))
+      else:
+        logger.error('No morphological tag index is specified for a morphological analysis supporting multiple morphological tag options (%s). Because of ambiguity, no morphological tag option will be used.', self)
+
+    def __getitem__(self, index: str) -> str | None:
+      if index in self.morph_tags:
+        return self.morph_tags[index]
+      else:
+        logger.error('The specified morphological tag index (%s) was not found in the morphological tag option dictionary of the morphological analysis (%s). No morphological tag option will be used.', index, self)
+        return None
         
 def in_braces(string: str) -> bool:
     return string.startswith('{') and string.endswith('}')
