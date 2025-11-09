@@ -153,6 +153,7 @@ class MultiMorph(Morph):
         return next(iter(self.morph_tags.values()))
       else:
         logger.error('No morphological tag index is specified for a morphological analysis supporting multiple morphological tag options (%s). Because of ambiguity, no morphological tag option will be used.', self)
+        return None
 
     def __getitem__(self, index: str) -> str | None:
       if index in self.morph_tags:
