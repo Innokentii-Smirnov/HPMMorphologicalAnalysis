@@ -1,3 +1,4 @@
+from __future__ import annotations
 from logging import getLogger
 logger = getLogger(__name__)
 
@@ -13,26 +14,28 @@ class Morph:
         self.pos = pos
         self.det = det
     
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Morph):
+          return NotImplemented
         return (self.segmentation == other.segmentation and
                 self.translation == other.translation and
                 self.pos == other.pos and
                 self.det == other.det)
     
     @property
-    def morph_info(self):
+    def morph_info(self) -> str:
         raise NotImplementedError
     
-    def __tuple__(self):
+    def __tuple__(self) -> tuple[str, str, str, str, str]:
         return self.segmentation, self.translation, self.morph_info, self.pos, self.det
     
-    def __str__(self):
+    def __str__(self) -> str:
         return ' @ '.join(self.__tuple__())
     
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.__tuple__().__hash__()
     
-    def to_multi(self):
+    def to_multi(self) -> MultiMorph:
         raise NotImplementedError
 
     """Return the morphological tag if it is the only morphological tag option
@@ -69,26 +72,30 @@ class SingleMorph(Morph):
         super().__init__(translation, segmentation, pos, det)
         self.morph_tag = morph_tag
     
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Morph):
+          return NotImplemented
         if super().__eq__(other):
             if isinstance(other, MultiMorph):
                 if other.is_singletone:
                     return self.morph_tag == next(iter(other.morph_tags.values()))
                 else:
-                    return false
-            else:
+                    return False
+            elif isinstance(other, SingleMorph):
                 return self.morph_tag == other.morph_tag
+            else:
+                return NotImplemented
         else:
-            return false
+            return False
     
     @property
-    def morph_info(self):
+    def morph_info(self) -> str:
         return self.morph_tag
     
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.__tuple__().__hash__()
         
-    def to_multi(self):
+    def to_multi(self) -> MultiMorph:
         return MultiMorph(self.segmentation, self.translation,
             {'a': self.morph_tag}, self.pos, self.det)
 
@@ -112,14 +119,18 @@ class MultiMorph(Morph):
         super().__init__(translation, segmentation, pos, det)
         self.morph_tags = morph_tags
     
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Morph):
+          return NotImplemented
         if super().__eq__(other):
             if isinstance(other, SingleMorph):
                 return self.is_singletone and next(iter(self.morph_tags.values())) == other.morph_tag
-            else:
+            elif isinstance(other, MultiMorph):
                 return self.morph_tags == other.morph_tags
+            else:
+                return NotImplemented
         else:
-            return false
+            return False
     
     @property
     def morph_info(self) -> str:
@@ -130,20 +141,20 @@ class MultiMorph(Morph):
         return ''.join(elements)
     
     @property
-    def is_singletone(self):
+    def is_singletone(self) -> bool:
         return len(self.morph_tags) == 1
     
-    def to_single(self):
+    def to_single(self) -> SingleMorph:
         return SingleMorph(self.segmentation, self.translation,
             next(iter(self.morph_tags.values())), self.pos, self.det)
     
-    def __hash__(self):
+    def __hash__(self) -> int:
         if (self.is_singletone):
             return self.to_single().__hash__()
         else:
             return self.__tuple__().__hash__()
     
-    def to_multi(self):
+    def to_multi(self) -> MultiMorph:
         return self
 
     @property
