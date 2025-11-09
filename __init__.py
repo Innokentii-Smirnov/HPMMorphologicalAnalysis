@@ -55,7 +55,7 @@ class Morph:
     if the index is found or the only morphological tag if the analysis
     does not support multiple options, None otherwise.
     """
-    def __getitem__(self) -> str | None:
+    def __getitem__(self, index: str) -> str | None:
       raise NotImplementedError
         
 class SingleMorph(Morph):
