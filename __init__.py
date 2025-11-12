@@ -60,6 +60,18 @@ class Morph:
     """
     def __getitem__(self, index: str) -> str | None:
       raise NotImplementedError
+
+    @classmethod
+    def parse(cls, string: str) -> Morph:
+      try:
+          translation, segmentation, morph_info, pos, det = list(map(str.strip, string.split('@')))
+      except ValueError:
+          raise ValueError(string)
+      if in_braces(morph_info):
+          morph_tags = parseMorphTags(morph_info)
+          return MultiMorph(translation, segmentation, morph_tags, pos, det)
+      else:
+          return SingleMorph(translation, segmentation, morph_info, pos, det)
         
 class SingleMorph(Morph):
     
@@ -187,14 +199,3 @@ def parseMorphTags(string: str) -> dict[str, str]:
             raise ValueError(string)
         morph_tags[key] = value
     return morph_tags
-
-def parseMorph(string: str) -> Morph:
-    try:
-        translation, segmentation, morph_info, pos, det = list(map(str.strip, string.split('@')))
-    except ValueError:
-        raise ValueError(string)
-    if in_braces(morph_info):
-        morph_tags = parseMorphTags(morph_info)
-        return MultiMorph(translation, segmentation, morph_tags, pos, det)
-    else:
-        return SingleMorph(translation, segmentation, morph_info, pos, det)
